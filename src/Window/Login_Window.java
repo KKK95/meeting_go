@@ -12,6 +12,7 @@ import java.util.Map;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -20,53 +21,83 @@ import Conn_to_Could.Browser.Water_Crab;
 public class Login_Window implements ActionListener 
 {
 	private static Map<String, String> form_data;
-	private static boolean send = false;
+	private static boolean send;
+	
 	
 	private JLabel id_label = new JLabel("id: ");
 	private JTextField id_txt = new JTextField(10);
 	private JLabel pw_label = new JLabel("pw: ");
 	private JTextField pw_txt = new JTextField(10);
-	private JButton login_button = new JButton("login");
+	public JButton login_button = new JButton("login");
 	
 	private JTextArea[] buffers = new JTextArea[4];
 	
-	private JFrame this_window = null;
+	private JPanel login_page = null;
 	
-	public Login_Window(JFrame window, Map<String, String> form)
+	public Login_Window()
 	{
-		form_data = form;
-		this_window = window;
-		init_login_window(window);
+		send = false;
+		form_data = new LinkedHashMap();;
+		init_login_window();
 	}
 	
-	private void init_login_window(JFrame window)
+	private void init_login_window()
 	{
-		
-		Container c = window.getContentPane();
-		c.setLayout(new FlowLayout());
-		
+		login_button.addActionListener(this);
+		login_page = new JPanel();
 		int x;
 		for(x = 0; x < 4; x++){
 			buffers[x] = new JTextArea("", 1, 30);
 			buffers[x].setEditable(false);
-			buffers[x].setBackground(window.getBackground());
 		}
 		
 
-		c.add(buffers[2]);
-		c.add(id_label);
-		c.add(id_txt);
+		login_page.add(buffers[2]);
+		login_page.add(id_label);
+		login_page.add(id_txt);
 
-		c.add(buffers[3]);
-		c.add(pw_label);
-		c.add(pw_txt);
+		login_page.add(buffers[3]);
+		login_page.add(pw_label);
+		login_page.add(pw_txt);
 		
-		c.add(buffers[1]);
-		c.add(login_button);
+		login_page.add(buffers[1]);
+		login_page.add(login_button);
 		
-		open();
 	}
 	
+	public void actionPerformed(ActionEvent e)		//這裏都跟button有關
+	{
+		Object src = e.getSource();
+		
+		if(src instanceof JButton)
+		{
+			if((JButton)src == login_button)
+			{
+				form_data.put("id", id_txt.getText()); 
+				form_data.put("pw", pw_txt.getText()); 
+				
+				send = true;
+				System.out.println("send : " + send);
+			}
+		}
+	}
+	
+	public JPanel get_page()
+	{	return login_page;	}
+	
+	public Map<String, String> get_form_data()
+	{	return form_data;	}
+	
+	public boolean send_data()
+	{	return send;	}
+	
+	public void sent()
+	{	
+		send = false;
+		return ;	
+	}
+	
+	/*	
 	public void open()
 	{
 		this_window.setLocationRelativeTo(null);
@@ -84,29 +115,9 @@ public class Login_Window implements ActionListener
 		
 		return;
 	}
+*/	
 	
-	public boolean send_data()
-	{	return send;	}
 	
-	public void sent()
-	{	
-		send = false;
-		return ;	
-	}
-	public void actionPerformed(ActionEvent e)		//這裏都跟button有關
-	{
-		Object src = e.getSource();
-		
-		if(src instanceof JButton)
-		{
-			if((JButton)src == login_button)
-			{
-				form_data.put("id", id_txt.getText()); 
-				form_data.put("pw", pw_txt.getText()); 
-				send = true;
-			}
-		}
-	}
 	
 	
 	

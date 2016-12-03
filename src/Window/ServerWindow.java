@@ -34,6 +34,9 @@ public class ServerWindow implements Runnable
 	private static Map<String, String> state = new LinkedHashMap();
 	private static final int WINDOW_HEIGHT = 275;
 	private static final int WINDOW_WIDTH = 350;
+
+	private static JPanel page = null;
+	private CardLayout card = null;
 	
 	private static Login_Window 		login_window 		= null; 
 	private static Local_Server_Window 	local_server_window = null; 
@@ -55,17 +58,21 @@ public class ServerWindow implements Runnable
 		
 		window = new JFrame();
 		window.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+		window.setLocationRelativeTo(null);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		card = new CardLayout(5, 5);
+		page = new JPanel();
+		page.setLayout(card);
 		
+		login_window = new Login_Window();
+		page.add(login_window.get_page(), "login");
 		
-//		server = new RemoteDataServer();
-//		server.setServerListener(this);
+		local_server_window = new Local_Server_Window();
+		page.add(local_server_window.get_page(), "center");
 		
-//		listener = new RemoteDataServer();
-//		listener.setServerListener(this);
-		Login_Window login_window = new Login_Window(window, form);
-		Local_Server_Window local_server_window = new Local_Server_Window(window, form);
-		window_state = "login_page";
+		window.getContentPane().add(page, BorderLayout.CENTER);
+		window.setVisible(true);
+		window.setResizable(false);
 /*		
 		if(DISPLAY_DESKTOP_SHORCUT) 
 		{
@@ -79,6 +86,11 @@ public class ServerWindow implements Runnable
 			shortcut.setLocationRelativeTo(null);
 			shortcut.setVisible(true);
 		}
+		//		server = new RemoteDataServer();
+		//		server.setServerListener(this);
+				
+		//		listener = new RemoteDataServer();
+		//		listener.setServerListener(this);
 */		
 		
 		
@@ -87,6 +99,7 @@ public class ServerWindow implements Runnable
 
 	public void run()
 	{
+		int test;
 		String now_page = "";
 		url = "device_index.php";
 		basic_web_link = "http://localhost:8080/meeting_cloud/";
@@ -95,19 +108,29 @@ public class ServerWindow implements Runnable
 		state = browser.get_state();
 		while(true)
 		{
-			
-			System.out.println( "login ----> " + state.containsKey("login") );
+
 			//============================登入===================================
 			if (state.containsKey("login"))
 			{
-				if (login_window != null && now_page != "login")
+				if ( now_page != "login")
+				{	now_page = "login";	card.show(page, "login");	}
+/*				
+				if (login_window != null && login_window.send_data() == 1) 
 				{
-					now_page = "login";
-					login_window.open();	
+						System.out.println( "login ----> " + login_window.send_data() );
+						
 				}
-				if (login_window != null && login_window.send_data() )
+				else if (login_window != null)
 				{
+					System.out.println( "wrong ----> " + login_window.send_data() );
+				}
+*/
+				if ((login_window != null) && (login_window.send_data()) )
+				{
+					System.out.println( "login ----> " + login_window.send_data() );
+					form = login_window.get_form_data();
 					url = browser.get_form_addr("login");
+					System.out.println( "login ----> " + url );
 					form.put("post_link", url);
 					try 
 					{
@@ -119,16 +142,20 @@ public class ServerWindow implements Runnable
 					
 					login_window.sent();
 				}
+				else if (login_window != null)
+				{
+					System.out.println( "wrong ----> " + login_window.send_data() );
+				}
 			}
 			//============================準備===================================
 			else if (state.containsKey("center"))
 			{
 				if (now_page != "center")
-				{
-					now_page = "center";
-					login_window.close();
-					local_server_window.open();
-				}
+				{	now_page = "center";	card.show(page, "center");	}
+				
+				
+				
+				
 			}
 		}
 	}
@@ -147,6 +174,7 @@ public class ServerWindow implements Runnable
 				System.out.println("main running ...");
 				i = 1;
 			}
+
 		}
 	}
 }

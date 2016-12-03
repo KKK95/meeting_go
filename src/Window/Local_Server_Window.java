@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
@@ -19,11 +20,18 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import Local_Server.ServerListener;
-
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.*;
+import java.util.Collections;
+import java.util.Enumeration;
 
 //public class Local_Server_Window extends ServerListener implements ActionListener 
 public class Local_Server_Window implements ActionListener 
@@ -31,8 +39,10 @@ public class Local_Server_Window implements ActionListener
 	private static final boolean DISPLAY_DESKTOP_SHORCUT = true;
 	
 	private static Map<String, String> form_data;
-	private static boolean send = false;
-	
+	private static boolean stendby = false;
+	//=====================================================================
+	private String ipAddress;						
+	//=====================================================================
 	private static JFrame shortcut = new JFrame("Dekstop Shortcut");
 	private static JLabel shortcutLabel = new JLabel(new ImageIcon());
 	//=====================================================================		
@@ -54,57 +64,102 @@ public class Local_Server_Window implements ActionListener
 	
 	private JButton shutdownButton = new JButton("Shutdown");
 	
-	private JFrame this_window = null;
+	private JPanel center_page = null;
 	
-	public Local_Server_Window(JFrame window, Map<String, String> form)
+	public Local_Server_Window()
 	{
-		form_data = form;
-		this_window = window;
-		init_server_window(window);
+		try{
+			InetAddress ip = getIpAddress();
+			ipAddress = ip.getHostAddress();
+			addressLabel.setText("IP Address: ");
+			ipTxt.setText(ipAddress);
+		}
+		catch(Exception e){addressLabel.setText("IP Address Could Not be Resolved, Try typing in the IP address.");}
+		
+		
+		form_data = new LinkedHashMap();
+		init_server_window();
 	}
 	
-	private void init_server_window(JFrame window)
+	private void init_server_window()
 	{
-		
 		connectButton.addActionListener(this);
 		disconnectButton.addActionListener(this);
 		//shutdownButton.addActionListener(this);
-		
-		Container c = window.getContentPane();
-		c.setLayout(new FlowLayout());
+		center_page = new JPanel();
 		
 		int x;
 		for(x = 0; x < 4; x++){
 			buffers[x] = new JTextArea("", 1, 30);
 			buffers[x].setEditable(false);
-			buffers[x].setBackground(window.getBackground());
+//			buffers[x].setBackground(window.getBackground());
 		}
 		
-		c.add(addressLabel);
-		c.add(ipTxt);
-		c.add(buffers[0]);
-		c.add(portLabel);
+		center_page.add(addressLabel);
+		center_page.add(ipTxt);
+		center_page.add(buffers[0]);
+		center_page.add(portLabel);
 		portTxt.setText("6060");
-		c.add(portTxt);
+		center_page.add(portTxt);
 
-		c.add(buffers[3]);
+		center_page.add(buffers[3]);
 		
-		c.add(listenPortLabel);
+		center_page.add(listenPortLabel);
 		listenPortTxt.setText("6080");
-		c.add(listenPortTxt);
+		center_page.add(listenPortTxt);
 		
-		c.add(buffers[1]);
-		c.add(connectButton);
-		c.add(disconnectButton);
-		c.add(buffers[2]);
-		c.add(serverMessages);
+		center_page.add(buffers[1]);
+		center_page.add(connectButton);
+		center_page.add(disconnectButton);
+		center_page.add(buffers[2]);
+		center_page.add(serverMessages);
 		
 		//c.add(shutdownButton);
 		ipTxt.setSize(100, 20);
 		
-		close();
-		
 	}
+	
+	private InetAddress getIpAddress() throws Exception
+	{
+		// this first line generally works on mac and windows
+		InetAddress ip = InetAddress.getLocalHost();
+		
+		// but on linux...
+		if(ip.isLoopbackAddress())
+		{
+			//loop trough all network interfaces
+			Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+            for (NetworkInterface netint : Collections.list(nets))
+            {
+            	//loop through the ip address associated with the interface
+            	Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
+                for (InetAddress inetAddress : Collections.list(inetAddresses)) {
+                	
+                	// if the address is no the loopback and is not ipv6
+                	if(!inetAddress.isLoopbackAddress() && !inetAddress.toString().contains(":"))
+                		return inetAddress;
+                }
+            }
+		}
+		
+		return ip;
+	}
+	
+	public JPanel get_page()
+	{	return center_page;	}
+	
+	public boolean stendby()
+	{	return stendby;	}
+	
+	public void sleeping()
+	{	
+		stendby = false;
+		return ;	
+	}
+
+	
+	
+	
 	
 	public void actionPerformed(ActionEvent e)		//這裏都跟button有關
 	{
@@ -181,23 +236,7 @@ public class Local_Server_Window implements ActionListener
 		}
 	}
 	
-	public void open()
-	{
-		this_window.setLocationRelativeTo(null);
-		this_window.setVisible(true);
-		this_window.setResizable(false);
-		
-		return;
-	}
 	
-	public void close()
-	{
-		this_window.setLocationRelativeTo(null);
-		this_window.setVisible(false);
-		this_window.setResizable(false);
-		
-		return;
-	}
 	
 	public static void setImage(byte[] image) {
 		if(DISPLAY_DESKTOP_SHORCUT) {
