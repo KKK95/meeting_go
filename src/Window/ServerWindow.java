@@ -30,6 +30,10 @@ import Local_Server.ServerListener;
 
 public class ServerWindow implements Runnable
 {
+	private static final boolean DISPLAY_DESKTOP_SHORCUT = true;
+	private static JFrame shortcut = null;
+	private static JLabel shortcutLabel = null;
+	
 	private static Map<String, String> form = new LinkedHashMap();
 	private static Map<String, String> state = new LinkedHashMap();
 	private static final int WINDOW_HEIGHT = 275;
@@ -73,33 +77,14 @@ public class ServerWindow implements Runnable
 		window.getContentPane().add(page, BorderLayout.CENTER);
 		window.setVisible(true);
 		window.setResizable(false);
-/*		
-		if(DISPLAY_DESKTOP_SHORCUT) 
-		{
-			shortcut.setSize(800, 600);
-			shortcut.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-			JScrollPane scrollPane = new JScrollPane(shortcutLabel);//��Image��ilabel��
-
-			shortcut.getContentPane().add(scrollPane);
-			shortcut.pack();
-			shortcut.setLocationRelativeTo(null);
-			shortcut.setVisible(true);
-		}
-		//		server = new RemoteDataServer();
-		//		server.setServerListener(this);
-				
-		//		listener = new RemoteDataServer();
-		//		listener.setServerListener(this);
-*/		
-		
-		
 		
 	}
 
 	public void run()
 	{
-		int test;
+		long startTime = System.currentTimeMillis();
+		long endTime = 0;
+		
 		String now_page = "";
 		url = "device_index.php";
 		basic_web_link = "http://localhost:8080/meeting_cloud/";
@@ -108,29 +93,18 @@ public class ServerWindow implements Runnable
 		state = browser.get_state();
 		while(true)
 		{
-
+			endTime = System.currentTimeMillis();
 			//============================登入===================================
 			if (state.containsKey("login"))
 			{
 				if ( now_page != "login")
 				{	now_page = "login";	card.show(page, "login");	}
-/*				
-				if (login_window != null && login_window.send_data() == 1) 
-				{
-						System.out.println( "login ----> " + login_window.send_data() );
-						
-				}
-				else if (login_window != null)
-				{
-					System.out.println( "wrong ----> " + login_window.send_data() );
-				}
-*/
+
 				if ((login_window != null) && (login_window.send_data()) )
 				{
-					System.out.println( "login ----> " + login_window.send_data() );
 					form = login_window.get_form_data();
 					url = browser.get_form_addr("login");
-					System.out.println( "login ----> " + url );
+					System.out.println( "sent to ----> " + url );
 					form.put("post_link", url);
 					try 
 					{
@@ -142,10 +116,12 @@ public class ServerWindow implements Runnable
 					
 					login_window.sent();
 				}
-				else if (login_window != null)
-				{
-					System.out.println( "wrong ----> " + login_window.send_data() );
+				else if (login_window != null && (endTime - startTime)/1000 > 5)
+				{	
+					System.out.println( "sent ? " + login_window.send_data() );
+					startTime = System.currentTimeMillis();
 				}
+
 			}
 			//============================準備===================================
 			else if (state.containsKey("center"))
@@ -153,13 +129,76 @@ public class ServerWindow implements Runnable
 				if (now_page != "center")
 				{	now_page = "center";	card.show(page, "center");	}
 				
-				
-				
-				
+				if ((local_server_window != null) && (local_server_window.send_data()) )
+				{
+					form = local_server_window.get_form_data();
+					url = browser.get_form_addr("server_meeting_start");
+					System.out.println( "sent to ----> " + url );
+					form.put("post_link", url);
+					try 
+					{
+						url = browser.post_submit_form(form);
+						browser.link(url);
+						state = browser.get_state();
+						show_imge();
+					} catch (IOException e) 
+					{	e.printStackTrace();	}
+					
+					local_server_window.sent();
+				}
+				else if (local_server_window != null && (endTime - startTime)/1000 > 5)
+				{
+					System.out.println( "sent ? " + local_server_window.send_data() );
+					startTime = System.currentTimeMillis();
+				}
+
 			}
 		}
 	}
 	
+	public static void show_imge()
+	{
+		shortcut = new JFrame("Dekstop Shortcut");
+		shortcutLabel = new JLabel(new ImageIcon());
+		if(DISPLAY_DESKTOP_SHORCUT) 
+		{
+			shortcut.setSize(800, 600);
+			shortcut.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+			JScrollPane scrollPane = new JScrollPane(shortcutLabel);
+
+			shortcut.getContentPane().add(scrollPane);
+			shortcut.pack();
+			shortcut.setLocationRelativeTo(null);
+			shortcut.setVisible(true);
+		}
+	}
+	
+	public static void setImage(BufferedImage img) 
+	{
+		if(DISPLAY_DESKTOP_SHORCUT) {
+	//		ByteArrayInputStream in = new ByteArrayInputStream(image);
+			int height, width;
+			try {
+	//			BufferedImage img = ImageIO.read(in);
+				height = 500;
+				width = 300;
+				System.out.println("Img:" + height + " " + width);
+				
+				Image scaleImage = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+				BufferedImage imageBuff = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+				imageBuff.getGraphics().drawImage(scaleImage, 0, 0, new Color(0, 0, 0), null);
+				
+				ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+				
+				ImageIO.write(imageBuff, "jpg", buffer);
+				
+	//			System.out.println("DrawImage:" + image.length);
+				shortcutLabel.setIcon(new ImageIcon(buffer.toByteArray()));
+			} catch (IOException e) 
+			{	e.printStackTrace();	}
+		}
+	}
 	
 	public static void main(String[] args)
 	{

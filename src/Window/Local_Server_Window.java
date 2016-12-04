@@ -1,21 +1,15 @@
 package Window;
 
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.FlowLayout;
-import java.awt.Image;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -24,22 +18,21 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import Local_Server.ServerListener;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.*;
 import java.util.Collections;
 import java.util.Enumeration;
 
+import Local_Server.local_server;
+
 //public class Local_Server_Window extends ServerListener implements ActionListener 
 public class Local_Server_Window implements ActionListener 
 {
+	private static local_server server_running = null;
 	private static final boolean DISPLAY_DESKTOP_SHORCUT = true;
 	
 	private static Map<String, String> form_data;
 	private static boolean stendby = false;
+	private static boolean send = false;
 	//=====================================================================
 	private String ipAddress;						
 	//=====================================================================
@@ -49,10 +42,12 @@ public class Local_Server_Window implements ActionListener
 	
 	private JLabel addressLabel = new JLabel("");
 	private JTextField ipTxt = new JTextField(10);
-	private JLabel portLabel = new JLabel("PORT: ");
-	private JTextField portTxt = new JTextField(5);
-	private JLabel listenPortLabel = new JLabel("Listen PORT: ");
-	private JTextField listenPortTxt = new JTextField(5);
+	private JLabel get_img_port_label = new JLabel("接收畫面端口: ");
+	private JTextField get_img_port_txt = new JTextField(5);
+	private JLabel remort_port_label = new JLabel("遠端控制端口 : ");
+	private JTextField remort_port_txt = new JTextField(5);
+	private JLabel send_img_port_label = new JLabel("送出畫面端口 : ");
+	private JTextField send_img_port_txt = new JTextField(5);
 	private JButton connectButton = new JButton("Connect");
 	private JButton disconnectButton = new JButton("Disconnect");
 	
@@ -98,15 +93,21 @@ public class Local_Server_Window implements ActionListener
 		center_page.add(addressLabel);
 		center_page.add(ipTxt);
 		center_page.add(buffers[0]);
-		center_page.add(portLabel);
-		portTxt.setText("6060");
-		center_page.add(portTxt);
+		center_page.add(remort_port_label);
+		remort_port_txt.setText("6060");
+		center_page.add(remort_port_txt);
 
-		center_page.add(buffers[3]);
+		center_page.add(buffers[1]);
 		
-		center_page.add(listenPortLabel);
-		listenPortTxt.setText("6080");
-		center_page.add(listenPortTxt);
+		center_page.add(get_img_port_label);
+		get_img_port_txt.setText("6080");
+		center_page.add(get_img_port_txt);
+		
+		center_page.add(buffers[2]);
+		
+		center_page.add(send_img_port_label);
+		send_img_port_txt.setText("6090");
+		center_page.add(send_img_port_txt);
 		
 		center_page.add(buffers[1]);
 		center_page.add(connectButton);
@@ -156,10 +157,18 @@ public class Local_Server_Window implements ActionListener
 		stendby = false;
 		return ;	
 	}
-
 	
+	public boolean send_data()
+	{	return send;	}
 	
+	public void sent()
+	{	
+		send = false;
+		return ;	
+	}
 	
+	public Map<String, String> get_form_data()
+	{	return form_data;	}
 	
 	public void actionPerformed(ActionEvent e)		//這裏都跟button有關
 	{
@@ -169,12 +178,21 @@ public class Local_Server_Window implements ActionListener
 		{
 			if((JButton)src == connectButton)
 			{
-				int port = Integer.parseInt(portTxt.getText());
-				int listenPort = Integer.parseInt(listenPortTxt.getText());
+				int remort_port = Integer.parseInt(remort_port_txt.getText());
+				int get_img_port = Integer.parseInt(get_img_port_txt.getText());
+				int send_img_port = Integer.parseInt(send_img_port_txt.getText());
+				
+				
 				try
 				{
+					form_data.put("ip", ipTxt.getText());
+					stendby = true;
+					send = true;
 					InetAddress ip = InetAddress.getByName(ipTxt.getText());
-	//				runServer(port, listenPort, ip);
+					
+					server_running = new local_server(remort_port, get_img_port, send_img_port, ip);
+					
+					connectButton.setEnabled(false);
 				}catch(UnknownHostException err)
 				{
 					serverMessages.setText("Error: Check that the ip you have entered is correct.");
@@ -184,7 +202,7 @@ public class Local_Server_Window implements ActionListener
 			else if((JButton)src == disconnectButton)
 			{
 				closeServer();
-				setConnectButtonEnabled(true);
+				connectButton.setEnabled(true);
 			}
 			
 			else if((JButton)src == shutdownButton)
@@ -207,9 +225,6 @@ public class Local_Server_Window implements ActionListener
 		serverMessages.setText(msg);
 	}
 	
-	public void setConnectButtonEnabled(boolean enable) {
-		connectButton.setEnabled(enable);
-	}
 	
 	
 	private static void shutdown() 
@@ -238,31 +253,7 @@ public class Local_Server_Window implements ActionListener
 	
 	
 	
-	public static void setImage(byte[] image) {
-		if(DISPLAY_DESKTOP_SHORCUT) {
-			ByteArrayInputStream in = new ByteArrayInputStream(image);
-			int height, width;
-			try {
-				BufferedImage img = ImageIO.read(in);
-				height = 500;
-				width = 300;
-				System.out.println("Img:" + height + " " + width);
-				
-				Image scaleImage = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-				BufferedImage imageBuff = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-				imageBuff.getGraphics().drawImage(scaleImage, 0, 0, new Color(0, 0, 0), null);
-				
-				ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-				
-				ImageIO.write(imageBuff, "jpg", buffer);
-				
-				System.out.println("DrawImage:" + image.length);
-				shortcutLabel.setIcon(new ImageIcon(buffer.toByteArray()));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+	
 	
 	
 	

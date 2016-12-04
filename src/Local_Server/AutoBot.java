@@ -228,6 +228,9 @@ public class AutoBot {
 		int x = (int) (mousePosition.x - (width * 0.5));
 		int y = (int) (mousePosition.y - (height * 0.5));
 		
+//		int x = (int) ((width * 0.5));
+//		int y = (int) ((height * 0.5));
+		
 		Rectangle captureSize = new Rectangle(x, y, width, height);
 		BufferedImage img = robot.createScreenCapture(captureSize);
 		// start drawing the mouse onto the image;

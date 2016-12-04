@@ -4,6 +4,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,68 +31,93 @@ import Window.ServerWindow;
 import messages.Constants;
 
 public class ImageReceiver implements Runnable {
-	
-	// local settings
-	private int PORT = 6090;
-	
-	private ServerSocket server;
-	private Socket client;
-	public boolean connected = false;
-	
-	//remote settings
-	private int clientPort;
-	private InetAddress listenerAddress;
-	
-	InputStream in;
-	
-	private String image;
-	
-	public ImageReceiver() {
-	}
-	
-	public ImageReceiver(int port) {
-		PORT = port;
-	}
-	
-	public void setPort(int port) {
-		PORT = port;
-	}
-	
-	public void run() {
 
+	// local settings
+	private Object lock_img = new Object();
+	private Object lock = new Object();
+	private Socket reg_client;
+	
+	public byte[] buf = null;
+	
+	public ImageReceiver() {}
+	
+	public void init(Socket client)
+	{
+		boolean joined = false;
+		while (joined == false)
+		{
+			synchronized(lock)  		//新增client 
+	        {	
+				if (reg_client == null)
+				{
+					reg_client = client;	
+					joined = true;   
+				}
+			}
+			System.out.println("init_rec");
+		}
+	}
+	
+	public BufferedImage get_image() throws IOException
+	{	
+		byte[] reg_buf = null;
+		synchronized(lock_img)  		//新增client 
+        {	reg_buf = buf;	}
+		
+		if (reg_buf != null)
+			return ImageIO.read(new ByteArrayInputStream(reg_buf));	
+		else
+			return null;
+	}
+	
+	public void run() 
+	{
 		boolean connected = false;
-		try {
-			System.out.println("Start receive image server " + PORT);
-			server = new ServerSocket(PORT);
-			client = server.accept();
-			in = client.getInputStream();
-			//out = new PrintWriter(new OutputStreamWriter(client.getOutputStream()));
-			connected = true;
+		Socket client = null;
+		InputStream in = null;
+		while (connected == false )
+		{
+			synchronized(lock)  		//新增client 
+	        {	
+				if (reg_client != null)
+				{
+					client = reg_client;	
+					reg_client = null;	
+					connected = true;   
+				}
+			}	
+			System.out.println("init_rec_run");
 		}
-		catch(BindException e) {
-			System.out.println("Can't bind to receive server port");
-		}
-		catch(Exception e) {
-			System.out.println("Create receive server port");
-		}
+		
+		try 
+		{	in = client.getInputStream();	}
+		
+		catch(BindException e) 
+		{	System.out.println("Can't bind to receive server port");	}
+		
+		catch(Exception e) 
+		{	System.out.println("Create receive server port");	}
 		
 		while(connected) {
 			// get message from sender
+			System.out.println("receiver connect ? " + connected);
 			try {
 				// store the packets address for sending images out
-				listenerAddress = client.getInetAddress();
-				clientPort = client.getPort();
-				System.out.println("[IR]Client:" + listenerAddress);
 				// translate and use the message to automate the desktop
 				byte[] lengthMsg = new byte[4];
                 in.read(lengthMsg);
                 int length = ByteBuffer.wrap(lengthMsg).asIntBuffer().get();
-                byte[] buf = new byte[length];
-
-                for(int i = 0; i < length; i++)
-                	buf[i] = (byte) in.read();
+                System.out.println("receiver connect ? " + connected);
+                synchronized(lock_img)
+                {
+                	System.out.println("in lock_img");
+	                buf = new byte[length];
+	                for(int i = 0; i < length; i++)
+	                	buf[i] = (byte) in.read();
+                }
                 
-                ServerWindow.setImage(buf);
+                
+                
 			}catch(Exception e) {
 				System.out.println("[IR]" + e);
 				connected = false;

@@ -63,6 +63,8 @@ public class Login_Window implements ActionListener
 		login_page.add(buffers[1]);
 		login_page.add(login_button);
 		
+		id_txt.setText("lsaa");
+		pw_txt.setText("12");
 	}
 	
 	public void actionPerformed(ActionEvent e)		//這裏都跟button有關
@@ -96,29 +98,5 @@ public class Login_Window implements ActionListener
 		send = false;
 		return ;	
 	}
-	
-	/*	
-	public void open()
-	{
-		this_window.setLocationRelativeTo(null);
-		this_window.setVisible(true);
-		this_window.setResizable(false);
-		
-		return;
-	}
-	
-	public void close()
-	{
-		this_window.setLocationRelativeTo(null);
-		this_window.setVisible(false);
-		this_window.setResizable(false);
-		
-		return;
-	}
-*/	
-	
-	
-	
-	
 	
 }

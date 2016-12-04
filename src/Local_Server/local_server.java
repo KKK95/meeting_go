@@ -1,47 +1,123 @@
 package Local_Server;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Enumeration;
 
+import Window.ServerWindow;
+import Local_Server.RemoteDataServer;
+
 public class local_server implements Runnable
 {
-
-	private Thread sThread; //server thread
-	private Thread lThread; //listen thread
+	private static RemoteDataServer sub_thread;
+	private static Thread remort_port_thread = null;
+	private static Thread get_img_thread = null;
+	private static Thread send_img_thread = null;
 	
-	public RemoteDataServer server;
+	private InetAddress ip;
+
+	private static int remort_port = 0;
+	private static int get_img_port = 0; 
+	private static int send_img_port = 0;
+	
+	private static boolean remort_thread_built = false;
+	private static boolean get_img_thread_built = false;
+	
+//	public RemoteDataServer server;
 	public RemoteDataServer listener;
 	
-	private String ipAddress;
 	
-	public local_server ()
+	
+	public local_server (int port1, int port2, int port3, InetAddress ip_address)
 	{
+		sub_thread = new RemoteDataServer();
+		remort_port = port1;
+		get_img_port = port2;
+		send_img_port = port3;
+		ip = ip_address;
+		remort_port_thread = new Thread(this);			 // 產生Thread物件
+		remort_port_thread.start();
+		
+		while (remort_thread_built == false)
+			System.out.println("remort_thread_built ? " + remort_thread_built);
+		
+		get_img_thread = new Thread(this);
+		get_img_thread.start();
+		
+		while (get_img_thread_built == false)
+			System.out.println("get_img_thread_built ? " + get_img_thread_built);
+		
+		send_img_thread = new Thread(this);
+		send_img_thread.start();
 		
 	}
 	
 	public void run()
-	{}
-	
-	public void runServer(int port, int listenerPort, InetAddress ip)
 	{
-		if(port < 65535){
-			server.setPort(port);
-			server.setIP(ip);
-			sThread = new Thread(server);
-			sThread.start();
-			
-			listener.setPort(listenerPort);
-			lThread = new Thread(listener);
-			lThread.start();
-			serverMessages.setText("Waiting for connection on " + ip);
-			connectButton.setEnabled(false);
-		}else{
-			serverMessages.setText("The port Number must be less than 65535");
-			connectButton.setEnabled(true);
+		ServerSocket server = null;
+		Socket client = null;
+		if (remort_thread_built == false)				
+		{
+			try {
+				server = new ServerSocket(remort_port);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+			remort_thread_built = true;
+			System.out.println("remort thread , port = " + server.getLocalPort() );
 		}
+		else if (get_img_thread_built == false)
+		{
+			try {
+				server = new ServerSocket(get_img_port);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			get_img_thread_built = true;
+			System.out.println("get img thread , port = " + server.getLocalPort() );
+		}
+		else
+		{
+			try {
+				server = new ServerSocket(send_img_port);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("send img thread , port = " + server.getLocalPort() );
+		}
+		//======================================================================//
+		
+		for (int pid=0; true; )
+	    {
+			
+	    	if (pid < 20)
+	    	{
+	    		try 
+	    		{
+					client = server.accept();
+					System.out.println(server.getLocalPort());
+					System.out.println(client.getPort());
+		    		sub_thread.init(client);
+					new Thread(sub_thread).start();
+				} catch (IOException e) 
+	    		{	e.printStackTrace();	}	
+	    		
+	        	++pid;
+	    	}
+	    }
+		
 	}
 		
 }

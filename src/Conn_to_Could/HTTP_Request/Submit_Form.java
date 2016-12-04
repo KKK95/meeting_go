@@ -41,6 +41,7 @@ public class Submit_Form {
 			    	post_form.add( new BasicNameValuePair( entry.getKey(), entry.getValue() ));	
 			    	System.out.println(entry.getKey()+"--->" + entry.getValue());
 		    }   
+		    System.out.println("post ---> " + url );
 		    post.setEntity( new UrlEncodedFormEntity(post_form, "UTF-8"));
 
 		    HttpResponse response = conn_cloud.execute(post);
@@ -56,9 +57,10 @@ public class Submit_Form {
 	        }
 	        
 	        System.out.println(s);
-		    if (response.getStatusLine().getStatusCode() == 302) 		  	//302 �����甇�
+		    if (response.getStatusLine().getStatusCode() == 302) 		  	
 		    {  	url = response.getLastHeader("Location").getValue();    }  
 		    
+		    System.out.println("in post get ---> " + url );
 		    return url;
 		  }
 }

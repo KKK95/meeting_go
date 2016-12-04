@@ -21,81 +21,65 @@ import javax.imageio.stream.ImageOutputStream;
 
 import Window.ServerWindow;
 
-public class ImageSender implements Runnable{
-	
+public class ImageSender implements Runnable
+{
+	private Object lock = new Object();
 	private InetAddress clientAddr;
-	private int clientPort;
-	private OutputStream out;
-	private Socket socket;
-	public boolean connected = false;
+	private Socket reg_socket;
 	
 	public static final float SIZETHRESHOLD = 100f;
 	
-	private BufferedImage img;
+	private BufferedImage image;
 	
-	public ImageSender(String ip, int port){
-		try{
-			clientAddr = InetAddress.getByName(ip);
-		}
-		catch (Exception e){
-			System.out.print("Exception setting ip address");
-		}
-		
-		clientPort = port;
-		
-		try {
-	           socket = new Socket(clientAddr, clientPort);
-	           out = socket.getOutputStream();
-	           connected = true;
-	           
-	       }
-	       catch (Exception e) {
-	           System.out.print("Could not bind to a port");
-	       }
-	}
+	public ImageSender() {}
 	
-	public ImageSender(InetAddress ip, int port){
-		clientAddr = ip;
-		clientPort = port;
-		
-		try {
-	           socket = new Socket(clientAddr, clientPort);
-	           out = socket.getOutputStream();
-	           connected = true;
-	       }
-	       catch (Exception e) {
-	           System.out.println("Could not bind to a port");
-	       }
-	}
-	
-	public ImageSender(Socket client) {
-		
-		try {
-	           socket = client;
-	           out = socket.getOutputStream();
-	           connected = true;
-	       }
-	       catch (Exception e) {
-	           System.out.println("Could not bind to a port");
-	       }
-	}
-	
-	public void setImage(BufferedImage image)
+	public void init(Socket socket) 
 	{
-		img = image;
+		boolean joined = false;
+		while (joined == false)
+		{
+			synchronized(lock)  		//新增client 
+	        {	
+				if (reg_socket == null)
+				{
+					reg_socket = socket;	
+					joined = true;   
+				}
+			}
+		}
 	}
 	
-	public void setPort(int port)
+	public void setImage(BufferedImage img)
+	{	image = img;	}
+	
+	public void run()
 	{
-		clientPort = port;
-	}
-	
-	public void run(){
+		OutputStream out = null;
+		boolean connected = false;
+		Socket socket = null;
+		while (connected == false )
+		{
+			synchronized(lock)  		//新增client 
+	        {	
+				if (reg_socket != null)
+				{
+					socket = reg_socket;	
+					reg_socket = null;	
+					connected = true;   
+				}
+			}	
+		}
+		try {
+			out = socket.getOutputStream();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		ByteArrayOutputStream buffer;
 		
 		try{
-			ByteArrayOutputStream tmp = compressImage(img, 1.0f);
-		    ImageIO.write(img, "jpeg", tmp);
+			ByteArrayOutputStream tmp = compressImage(image, 1.0f);
+		    ImageIO.write(image, "jpeg", tmp);
 		    tmp.close();
 		    
 		    int contentLength = tmp.size();
@@ -105,7 +89,7 @@ public class ImageSender implements Runnable{
 		    if(compress > 1.0) {
 		    	buffer = tmp;
 		    } else {
-		    	buffer = compressImage(img, compress);
+		    	buffer = compressImage(image, compress);
 		    }
 
 		}catch(IOException e){
@@ -122,7 +106,7 @@ public class ImageSender implements Runnable{
 			out.write(data);
 			out.flush();
 			System.out.println("Data Length = "+data.length);
-			ServerWindow.setImage(data);
+//			ServerWindow.setImage(data);
 			buffer.close();
 		} catch (IOException e) {
 			System.out.println("Data Length = "+data.length);
