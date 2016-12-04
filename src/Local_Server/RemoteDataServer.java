@@ -24,22 +24,34 @@ public class RemoteDataServer implements Runnable
 		private Object lock_img = new Object();
 		
 		private Socket reg_client;
+		private ServerSocket send_img_server = null;
+		private ServerSocket get_img_server = null;
+		private int get_img_port = 0;
+		private int send_img_port = 0;
 		
 		private ImageSender sender = null;
 		private ImageReceiver receiver = null;
 		
 		private long startTime = 0;
 		private long endTime = 0;
+		private long delay = 0;
 		
 		public BufferedImage image = null;
 		
 		private AutoBot bot = null;
 	
-		public RemoteDataServer() 
+		public RemoteDataServer(int port1,int port2) throws IOException 
 		{	
+			
 			if (sender == null)	sender = new ImageSender();
 			if (receiver == null)	receiver = new ImageReceiver();
 			if (bot == null)	bot = new AutoBot();
+			get_img_port = port2;
+			get_img_server = new ServerSocket(get_img_port);
+			/*
+			send_img_port = port1;
+			send_img_server = new ServerSocket(send_img_port);
+			*/
 		}
 		
 		public void init(Socket client)
@@ -62,11 +74,12 @@ public class RemoteDataServer implements Runnable
 		public void run() 
 		{
 			String message;
-			boolean init_img_receiver = false;
 			boolean connected = false;
 			BufferedReader in = null;
 			PrintWriter out = null;
 			Socket client = null;
+			Socket send_img_client = null;
+			Socket get_img_client = null;
 
 			while (connected == false )
 			{
@@ -92,7 +105,6 @@ public class RemoteDataServer implements Runnable
 
 			while(connected) 
 			{
-				System.out.println("connected");
 				try 
 				{
 					message = in.readLine();
@@ -127,16 +139,9 @@ public class RemoteDataServer implements Runnable
 					{
 						System.out.println("Provide Image");
 						
-						if (init_img_receiver == false)
-						{
-							init_receiveImage(client);
-							init_img_receiver = true;
-						}
-						synchronized(lock_img)  		//最後一次收到圖片的時間 
-				        {	
-							startTime = System.currentTimeMillis();		
-							image = receiver.get_image();
-				        }
+						if (send_img_client == null)
+						{	send_img_client = init_receiveImage();	}
+
 					}
 					
 					else
@@ -145,11 +150,7 @@ public class RemoteDataServer implements Runnable
 						System.out.println("Connected to Controller");
 						bot.handleMessage(message);
 					}
-					synchronized(lock_img)  			//計時看看5秒內有沒有收到圖片
-			        {
-						endTime = System.currentTimeMillis();
-						if (image != null)	ServerWindow.setImage(image);
-			        }
+					
 				}catch(Exception e) {
 					System.out.println("[Server]" + e);
 					System.out.println("Disconnected");
@@ -164,20 +165,23 @@ public class RemoteDataServer implements Runnable
 			synchronized(lock_img)  		//新增client 
 	        {	
 				image = receiver.get_image();
-				if ((endTime - startTime)/1000 > 5 || image == null)	//計時看看5秒內有沒有收到圖片
+				delay = receiver.delay();
+				System.out.println("delay" + delay);
+				if (delay > 2 || image == null)	//計時看看5秒內有沒有收到圖片
 					image = bot.getScreenCap(width, height);
 	        }
 		}
 		
-		public void sendImage(Socket client, int width, int height) 
+		public Socket sendImage(Socket client, int width, int height) throws IOException 
 		{	
+			
 			Thread send_image_thread = null;
 			if(sender != null) 
 			{
 				if(width == 0 && height == 0) 
 				{
 					System.out.println("Receive 0 rectangle");
-					return;
+					return client;
 				}
 				
 				float scale = 0.5f;
@@ -187,26 +191,37 @@ public class RemoteDataServer implements Runnable
 					scale = ImageSender.SIZETHRESHOLD / height;
 				}
 				synchronized(lock_img)  		//新增image
-		        {	sender.setImage(image);		}
+		        {	
+					sender.setImage(image);		
+					ServerWindow.setImage(image);
+		        }
 				
 				synchronized(lock_sender)  		//新增client 
 		        {	
+					/*
+					if (client == null)
+						client = send_img_server.accept();
+					*/
 					sender.init(client);
 					send_image_thread = new Thread(sender);
 					send_image_thread.start();
 				}
 			}
+			return client;
 		}
 
-		public void init_receiveImage(Socket client) 
+		public Socket init_receiveImage() throws IOException 
 		{
+			Socket send_img_client;
 			System.out.println("Call receive image, start receive server");
 			synchronized(lock_receiver)  		//新增client 
 	        {	
-				receiver.init(client);
+				send_img_client = get_img_server.accept();
+				receiver.init(send_img_client);
 				Thread receive_image_thread = new Thread(receiver);
 				receive_image_thread.start();
 	        }
+			return send_img_client;
 		}
 		
 		

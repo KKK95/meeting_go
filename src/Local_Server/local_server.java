@@ -18,7 +18,7 @@ import Local_Server.RemoteDataServer;
 
 public class local_server implements Runnable
 {
-	private static RemoteDataServer sub_thread;
+	private static RemoteDataServer sub_thread = null;
 	private static Thread remort_port_thread = null;
 	private static Thread get_img_thread = null;
 	private static Thread send_img_thread = null;
@@ -29,20 +29,16 @@ public class local_server implements Runnable
 	private static int get_img_port = 0; 
 	private static int send_img_port = 0;
 	
-	private static boolean remort_thread_built = false;
-	private static boolean get_img_thread_built = false;
+	private static boolean remort_thread_built = false;	
+	private static boolean get_img_thread_built = false;	
 	
-//	public RemoteDataServer server;
-	public RemoteDataServer listener;
-	
-	
-	
-	public local_server (int port1, int port2, int port3, InetAddress ip_address)
+	public local_server (int port1, int port2, int port3, InetAddress ip_address) throws IOException
 	{
-		sub_thread = new RemoteDataServer();
+		
 		remort_port = port1;
-		get_img_port = port2;
-		send_img_port = port3;
+		send_img_port = port2;
+		get_img_port = port3;
+		sub_thread = new RemoteDataServer(send_img_port, get_img_port);
 		ip = ip_address;
 		remort_port_thread = new Thread(this);			 // 產生Thread物件
 		remort_port_thread.start();
@@ -50,14 +46,16 @@ public class local_server implements Runnable
 		while (remort_thread_built == false)
 			System.out.println("remort_thread_built ? " + remort_thread_built);
 		
-		get_img_thread = new Thread(this);
-		get_img_thread.start();
-		
-		while (get_img_thread_built == false)
-			System.out.println("get_img_thread_built ? " + get_img_thread_built);
-		
 		send_img_thread = new Thread(this);
 		send_img_thread.start();
+/*		
+		while (remort_thread_built == false)
+			System.out.println("get_img_thread_built ? " + get_img_thread_built);
+		
+		get_img_thread = new Thread(this);
+		get_img_thread.start();
+*/		
+		
 		
 	}
 	
@@ -76,6 +74,17 @@ public class local_server implements Runnable
 			remort_thread_built = true;
 			System.out.println("remort thread , port = " + server.getLocalPort() );
 		}
+		else if (remort_thread_built == true)	
+		{
+			try {
+					server = new ServerSocket(send_img_port);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("send img thread , port = " + server.getLocalPort() );
+		}
+/*		
 		else if (get_img_thread_built == false)
 		{
 			try {
@@ -97,11 +106,11 @@ public class local_server implements Runnable
 			}
 			System.out.println("send img thread , port = " + server.getLocalPort() );
 		}
+*/		
 		//======================================================================//
 		
 		for (int pid=0; true; )
 	    {
-			
 	    	if (pid < 20)
 	    	{
 	    		try 

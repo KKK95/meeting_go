@@ -100,13 +100,13 @@ public class Local_Server_Window implements ActionListener
 		center_page.add(buffers[1]);
 		
 		center_page.add(get_img_port_label);
-		get_img_port_txt.setText("6080");
+		get_img_port_txt.setText("6090");
 		center_page.add(get_img_port_txt);
 		
 		center_page.add(buffers[2]);
 		
 		center_page.add(send_img_port_label);
-		send_img_port_txt.setText("6090");
+		send_img_port_txt.setText("6080");
 		center_page.add(send_img_port_txt);
 		
 		center_page.add(buffers[1]);
@@ -189,13 +189,15 @@ public class Local_Server_Window implements ActionListener
 					stendby = true;
 					send = true;
 					InetAddress ip = InetAddress.getByName(ipTxt.getText());
-					
-					server_running = new local_server(remort_port, get_img_port, send_img_port, ip);
-					
+																	//6080			6090
+					server_running = new local_server(remort_port, send_img_port, get_img_port, ip);		
 					connectButton.setEnabled(false);
 				}catch(UnknownHostException err)
 				{
 					serverMessages.setText("Error: Check that the ip you have entered is correct.");
+				}catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
 				}
 			}
 				

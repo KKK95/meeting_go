@@ -46,6 +46,7 @@ public class ImageSender implements Runnable
 					joined = true;   
 				}
 			}
+			System.out.println("sender init : " + joined);
 		}
 	}
 	
@@ -68,6 +69,7 @@ public class ImageSender implements Runnable
 					connected = true;   
 				}
 			}	
+			System.out.println("sender run connected : " + connected);
 		}
 		try {
 			out = socket.getOutputStream();

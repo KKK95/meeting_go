@@ -37,7 +37,11 @@ public class ImageReceiver implements Runnable {
 	private Object lock = new Object();
 	private Socket reg_client;
 	
+	private long startTime = 0;
+	private long endTime = 0;
+	
 	public byte[] buf = null;
+	private int length = 0;
 	
 	public ImageReceiver() {}
 	
@@ -62,12 +66,26 @@ public class ImageReceiver implements Runnable {
 	{	
 		byte[] reg_buf = null;
 		synchronized(lock_img)  		//新增client 
-        {	reg_buf = buf;	}
+        {	
+			if (length != 0)
+			{
+				reg_buf = new byte[length];
+				reg_buf = buf;	
+			}
+		}
 		
 		if (reg_buf != null)
 			return ImageIO.read(new ByteArrayInputStream(reg_buf));	
 		else
 			return null;
+	}
+	
+	public long delay()
+	{    
+		endTime = System.currentTimeMillis();    
+		if (endTime - startTime != 0)
+			return (endTime - startTime)/1000 ;
+		return 0;
 	}
 	
 	public void run() 
@@ -86,7 +104,6 @@ public class ImageReceiver implements Runnable {
 					connected = true;   
 				}
 			}	
-			System.out.println("init_rec_run");
 		}
 		
 		try 
@@ -100,23 +117,22 @@ public class ImageReceiver implements Runnable {
 		
 		while(connected) {
 			// get message from sender
-			System.out.println("receiver connect ? " + connected);
 			try {
 				// store the packets address for sending images out
 				// translate and use the message to automate the desktop
+				
 				byte[] lengthMsg = new byte[4];
                 in.read(lengthMsg);
-                int length = ByteBuffer.wrap(lengthMsg).asIntBuffer().get();
-                System.out.println("receiver connect ? " + connected);
                 synchronized(lock_img)
                 {
-                	System.out.println("in lock_img");
+                	length = ByteBuffer.wrap(lengthMsg).asIntBuffer().get();
 	                buf = new byte[length];
 	                for(int i = 0; i < length; i++)
 	                	buf[i] = (byte) in.read();
+	                
                 }
-                
-                
+                ServerWindow.setImage(ImageIO.read(new ByteArrayInputStream(buf)));
+                startTime = System.currentTimeMillis();
                 
 			}catch(Exception e) {
 				System.out.println("[IR]" + e);
